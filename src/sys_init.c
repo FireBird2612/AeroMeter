@@ -1,28 +1,37 @@
 #include "stm32f446xx.h"
 #include "system_stm32f4xx.h"
 #include "config.h"
+#include "stm32f4_usart.h"
 #include <stdint.h>
 
 static uint32_t sys_clk;
+static uint32_t monotonic_clk_overflow;
 
 void SystemInit(void) {
   ClockInit();
+  monotonic_clk_init();
+  usart2_log_init();
 }
 
 void ClockInit(void) {
   uint32_t timeout = 0xFFFFFF, set_hse = 0;
 
+  #ifdef EN_HSE_CLOCK
   /*  Enable the HSE crystal osc. and check if HSE is ready */
   RCC->CR |= RCC_CR_HSEON_Msk;
   while (!((RCC->CR & RCC_CR_HSERDY_Msk) && (--timeout)))
     ;
+
+  #endif
 
   if (timeout == 0) {
     /*  Log debug message and fallback to internal osc */
 
     timeout = 0xFFFFFF;
   } else {
+    #ifdef EN_HSE_CLOCK
     set_hse = 1;
+    #endif
     goto pll;
   }
 
@@ -44,7 +53,7 @@ pll:
   uint32_t clock_freq = 0;
   uint32_t plln = 45, pllm = 2, pll_freq = 0, pllp = 2;
 
-  if ((set_hse = 1))
+  if ((set_hse == 1))
   {
     clock_freq = OSCEX_FEQ;
     pllm = 4;
@@ -79,8 +88,35 @@ pll:
     /*  Log: Not able to switch ot PLL */
   }
 
+  RCC->CFGR |= (RCC_CFGR_PPRE1_DIV4 | RCC_CFGR_PPRE2_2);
 }
 
 uint32_t get_sys_clk(void){
   return sys_clk;
+}
+
+void monotonic_clk_init(void) {
+  RCC->APB1ENR |= RCC_APB1ENR_TIM5EN_Msk;
+  TIM5->ARR = 0xFFFFFFFF;
+  TIM5->CNT = 0;
+
+  uint32_t psc_val = (APB1_MAX_FREQ / 1000000) - 1;
+  TIM5->PSC = psc_val;
+
+  TIM5->DIER |= TIM_DIER_UIE_Msk;
+
+  TIM5->EGR |= TIM_EGR_UG_Msk;
+
+  NVIC_EnableIRQ(TIM5_IRQn);
+  NVIC_SetPriority(TIM5_IRQn, 5);
+
+  TIM5->CR1 |= TIM_CR1_CEN_Msk;
+
+}
+
+void TIM5_IRQHandler(void){
+  if (TIM5->SR & TIM_SR_UIF_Msk){
+      TIM5->SR &= ~TIM_SR_UIF_Msk;
+  }
+   monotonic_clk_overflow++;
 }

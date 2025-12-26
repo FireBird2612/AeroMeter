@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 
-#define HSI_OSC 16000000U
-//#define HSE_OSC
+#define APB1_MAX_FREQ 45000000
 
 void ClockInit(void);
 uint32_t get_sys_clk(void);
+void monotonic_clk_init(void);
 
 #endif
