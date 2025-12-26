@@ -38,7 +38,8 @@ INCLUDES = \
 SRCS = \
 startup-file/startup_stm32f446xx.S \
 	src/main.c	\
-	src/sys_init.c
+	src/sys_init.c	\
+	src/stm32f4_usart.c
 
 DEFINES = \
 	-DSTM32F446xx \
