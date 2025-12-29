@@ -7,6 +7,5 @@
 
 void ClockInit(void);
 uint32_t get_sys_clk(void);
-void monotonic_clk_init(void);
 
 #endif
