@@ -1,12 +1,13 @@
 #include <stdint.h>
-#include "stm32f4_usart.h"
+#include "ulogger.h"
 
 int main(void) {
 
-  usart2_log_string("\r\nInitializing AeroMeter\r\n");
+  ulog_flush();
 
-  while (1)
-    ;
+  while (1){
+    
+  }
 
   return 0;
 }
