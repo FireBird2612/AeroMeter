@@ -3,7 +3,7 @@ TARGET = EnvMonitor
 # Define your target processor
 CPU = cortex-m4
 
-.PHONY: all clean size directory
+.PHONY: all clean size directory	flash
 
 # Linker Script Location
 LD_SCRIPT = linker-script/stm32f446xe_flash.ld
@@ -39,7 +39,10 @@ SRCS = \
 startup-file/startup_stm32f446xx.S \
 	src/main.c	\
 	src/sys_init.c	\
-	src/stm32f4_usart.c
+	src/monotonic_clk.c	\
+	src/ulogger.c	\
+	src/syscalls.c
+
 
 DEFINES = \
 	-DSTM32F446xx \
@@ -51,6 +54,7 @@ ASFLAGS = -c
 ASFLAGS += -Wall
 ASFLAGS += -mcpu=$(CPU)
 ASFLAGS += -mfloat-abi=hard
+ASFLAGS += -mfpu=fpv4-sp-d16
 ASFLAGS += -mthumb
 ASFLAGS += -O0
 
@@ -58,15 +62,21 @@ ASFLAGS += -O0
 CFLAGS = -W -Wall --std=gnu99 -g3 -O0
 CFLAGS += -mcpu=$(CPU) -mthumb
 CFLAGS += -mfloat-abi=hard
+CFLAGS += -mfpu=fpv4-sp-d16
 CFLAGS += -mtune=cortex-m4
 CFLAGS += -MD -MP
 
 # Linker flags
 LDFLAGS = -mcpu=$(CPU) -mthumb
-LDFLAGS += -nostdlib
+LDFLAGS += -mfloat-abi=hard
+LDFLAGS += -mfpu=fpv4-sp-d16
+LDFLAGS += -specs=nano.specs
+LDFLAGS += -lc -lm
 LDFLAGS += -lgcc
 LDFLAGS += -Wl,--gc-sections
 LDFLAGS += -Wl,--script=$(LD_SCRIPT)
+LDFLAGS += -lgcc
+LDFLAGS += -Wl,--gc-sections
 
 # Combine flags
 CFLAGS += $(INCLUDES) $(DEFINES)
@@ -116,6 +126,9 @@ size: $(BUILD_DIR)$(TARGET).elf
 clean:
 	@echo "clean"
 	@-rm -rf $(BUILD_DIR)
+
+flash:
+	st-flash	write	$(BUILD_DIR)$(TARGET).bin	0x08000000
 
 # Include dependency files
 -include $(wildcard $(OBJ_DIR)*.d)
